@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
+        <style>
+            .result {
+                padding: 20px 10px;
+            }
+            .card {
+                margin: 20px 10px;
+            }
+            .card-title {
+                margin: 30px 0 10px;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div class="container-fluid">
+            <br />
+            <div id="movieapp">   
+                <form class="form-horizontal">
+                    <div class="form-group">
+                        <div class="input-group">
+                            <input id="queryField" v-model.trim="query" v-on:keypress.enter.prevent="executeNewSearch" type="search" class="form-control" placeholder="Search movie by a name or a title ..." autofocus />
+                        </div>                            
+                    </div>
+                </form> 
+
+                <div class="result">
+                    <div class="row">
+                        <div class="col-xs-12">
+                            <p class="px-3 text-mute" v-html="noResultsMessage"></p>
+                        </div>
+                        <div class="col-sm-6 mx-auto">
+                            <div class="card-wrapper wz-25 mx-auto" v-for="movie in searchedMovies">
+                                <div class="card" v-show="movie.poster_path">
+                                    <img class="card-img-top img-fluid" :src="imageBaseURL + movie.poster_path" alt="Card image cap">
+                                    <div class="card-body p-2">
+                                      <h5 class="card-title" v-show="movie.title || movie.original_title || movie.original_name">{{movie.title || movie.original_title || movie.original_name}}</h5>
+                                      <p class="card-text text-justify text-mute">{{movie.overview}}</p>
+                                    </div>
+                                    <ul class="list-group list-group-flush">
+                                      <li class="list-group-item text-mute">Popularity: {{movie.popularity.toFixed(2)}}</li>
+                                      <li class="list-group-item text-mute">Votes: {{movie.vote_average}}</li>
+                                      <li class="list-group-item text-mute">Release Date: {{movie.release_date}}</li>
+                                    </ul>
+                                    <div class="card-body py-3 px-2">
+                                      <a href="#" class="card-link btn btn-primary">Add To Cart</a>
+                                      <a href="#" class="card-link btn btn-secondary">Buy Now</a>
+                                    </div>
+                                  </div>
+                            </div>
+                        </div>
+                        <div class="col-offset-1 col-sm-5 mx-auto">
+                            <div class="pull-right px-3 my-3" v-if="searchedMovies.length !== 0">
+                                <form action="#">
+                                    <div class="form-group">
+                                        <label data-toggle="tooltip" data-placement="left" title="This demonstrates a query duration."><strong>Query Duration</strong></label>
+                                        <p class="text-mute">{{ queryDuration }} secs.</p>
+                                    </div>
+                                
+                                    <div class="form-group">
+                                        <label data-toggle="tooltip" data-placement="left" title="This demonstrates the 'count' parameter."><strong>Query Results</strong></label>
+                                        <p class="text-mute">{{ resultCount }}</p>
+                                    </div>           
+                                
+                                    <div class="form-group">
+                                        <label data-toggle="tooltip"><strong>Disclaimer</strong></label>
+                                        <p class="text-mute">
+                                            The data in this search service is fictional.
+                                            It is not intended to be used for real beers.
+                                            <br /><br />
+                                            The data in this search service is in a shared environment.
+                                            There may be other individuals modifying the data while you're using it.                                
+                                            Please be aware that you may experience unexpected results because of this.
+                                            <br /><br />
+                                            You can reset the data to its original state by clicking the button below.
+                                            <br /><br />
+                                        </p>
+                                    </div>                        
+                                </form>                    
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script src="https://unpkg.com/vue@2.1.10/dist/vue.js" type="text/javascript"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.15.2/axios.min.js" type="text/javascript"></script>
+        <script type="text/javascript">
+            var growler = new Vue({
+                el: '#movieapp',
+                data: {
+                    searchedMovies:[],
+                    baseURL: 'https://api.themoviedb.org/3/search/multi',
+                    API_key: '3d4401296c8a544eeaf2a59d335e5e58',
+                    query:'',
+                    page:'1',
+                    imageBaseURL: 'https://image.tmdb.org/t/p/original',
+                    queryDuration: 0,
+                    resultCount: 0,
+                    searchIndex: 0,
+                    noResultsMessage: ''
+                },
+                methods: {
+                    executeNewSearch: function(event) {
+                        this.fetchMovieByTitle();
+                    },
+                    fetchMovieByTitle: function() {
+                        let lang = 'language=en-US';
+                        let queryString = encodeURIComponent(this.query);
+                        let defaultString = 'include_adult=false';
+                        let url = this.baseURL + '?' + 'api_key='+ this.API_key + '&' + lang + '&query=' + queryString + '&page=' + this.page + '&' + defaultString;
+                        const options = {
+                            method: 'GET',
+                            url,
+                            // url: 'https://api.themoviedb.org/3/search/multi?api_key=3d4401296c8a544eeaf2a59d335e5e58&language=en-US&query=roti&page=1&include_adult=false',
+                        };
+                        let self = this;
+                        let startTime = new Date().getTime();
+                        axios.request(options).then(function (response) {
+                            let currentResult;
+                            self.queryDuration = (new Date().getTime() - startTime)/ 1000;
+                            
+                            if(response.data.results.length <= 0) {
+                                self.noResultsMessage = 'The above <strong class="text-uppercase">' +  self.query + '</strong> query didn\'t return any  significant result. Please try again with a relevent search query'
+                            }
+                            self.searchedMovies = [];
+                            for(var i=0;i<response.data.results.length;i++) {
+                                currentResult = response.data.results[i];
+                                if(currentResult.title !== undefined && (currentResult.poster_path != undefined || currentResult.poster_path !== null )) {
+                                    self.searchedMovies.push(currentResult);
+                                }
+                            }
+                            self.resultCount = self.searchedMovies.length;
+                        }).catch(function (error) {
+                            self.noResultsMessage = error;
+                        });
+                    }
+                },
+            });
+        </script>
+    </body>
+</html>
+
